@@ -6,7 +6,5 @@ include_directories(
   src
 )
 
-add_executable(demo test/demo.cpp src/correct_outlier.cpp)
-
-target_link_libraries(demo
-)
+add_executable(demo_signal_processing test/demo_signal_processing.cpp src/correct_outlier.cpp)
+add_executable(demo_line_fitting test/demo_line_fitting.cpp src/correct_outlier.cpp)

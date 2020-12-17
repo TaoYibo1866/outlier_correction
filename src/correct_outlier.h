@@ -14,6 +14,7 @@ namespace correct_outlier
 
 	void bubbleSort(vector<double>& vec, int n);
 	void leastSquare(vector<int> x, vector<double> y, double& k, double& b);
+	void leastSquare(vector<double> pts, double& k, double& b);
 	void threshold(vector<double> pts, double k, double b, double threshold, vector<int>& inliers, vector<int>& outliers);
 	void subset(vector<double> pts, vector<int> idx, vector<double>& sub);
 }

@@ -38,6 +38,21 @@ void leastSquare(vector<int> x, vector<double> y, double& k, double& b)
 	b = (sigma_xx * sigma_y - sigma_x * sigma_xy) / (len * sigma_xx - sigma_x * sigma_x);
 }
 
+void leastSquare(vector<double> pts, double& k, double& b)
+{
+	int len = pts.size();
+	double sigma_x=0, sigma_y=0, sigma_xx=0, sigma_xy=0;
+	for (int i = 0; i < len; i++)
+	{
+		sigma_x += i;
+		sigma_y += pts[i];
+		sigma_xx += i * i;
+		sigma_xy += i * pts[i];
+	}
+	k = (len * sigma_xy - sigma_x * sigma_y) / (len * sigma_xx - sigma_x * sigma_x);
+	b = (sigma_xx * sigma_y - sigma_x * sigma_xy) / (len * sigma_xx - sigma_x * sigma_x);
+}
+
 void threshold(vector<double> pts, double k, double b, double threshold, vector<int>& inliers, vector<int>& outliers)
 {
 	int len = pts.size();
@@ -70,7 +85,7 @@ void findOutlier(vector<double> pts, vector<int>& inliers, vector<int>& outliers
 	int len = pts.size();
 	inliers.clear();
 	outliers.clear();
-	// 以直线为模型，最小化误差的中位数(LMedS)
+	// 以直线为模型，最小化误差的中位数
 	double best_k = 0;
 	double best_b = 0;
 	double min_med_err = DBL_MAX;
