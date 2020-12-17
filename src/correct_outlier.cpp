@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
+#include <random>
 #include "correct_outlier.h"
 
 namespace correct_outlier
@@ -53,7 +54,7 @@ void leastSquare(vector<double> pts, double& k, double& b)
 	b = (sigma_xx * sigma_y - sigma_x * sigma_xy) / (len * sigma_xx - sigma_x * sigma_x);
 }
 
-void threshold(vector<double> pts, double k, double b, double threshold, vector<int>& inliers, vector<int>& outliers)
+void split(vector<double> pts, double k, double b, double threshold, vector<int>& inliers, vector<int>& outliers)
 {
 	int len = pts.size();
 	inliers.clear();
@@ -114,7 +115,7 @@ void findOutlier(vector<double> pts, vector<int>& inliers, vector<int>& outliers
 		}
 	}
 	// min_med_err相当于自适应得出的野点判别阈值，先利用它进行初筛
-	threshold(pts, best_k, best_b, min_med_err, inliers, outliers);
+	split(pts, best_k, best_b, min_med_err, inliers, outliers);
 
 	// 对内点最小二乘，优化模型参数，最大化内点个数
 	int max_inlier_cnt = 0;
@@ -124,7 +125,7 @@ void findOutlier(vector<double> pts, vector<int>& inliers, vector<int>& outliers
 		double k, b;
 		subset(pts, inliers, pts_in);
 		leastSquare(inliers, pts_in, k, b);
-		threshold(pts, k, b, min_med_err, inliers, outliers);
+		split(pts, k, b, min_med_err, inliers, outliers);
 		if (inliers.size() > max_inlier_cnt)
 		{
 			best_k = k;
@@ -132,6 +133,97 @@ void findOutlier(vector<double> pts, vector<int>& inliers, vector<int>& outliers
 			max_inlier_cnt = inliers.size();
 		}
 	}
+	_k = best_k;
+	_b = best_b;
+}
+
+void findOutlierLMEDS(vector<double> pts, vector<int>& inliers, vector<int>& outliers, double& _k, double& _b, int max_iter)
+{
+	int len = pts.size();
+	inliers.clear();
+	outliers.clear();
+	double best_k = 0;
+	double best_b = 0;
+	double min_med_err = DBL_MAX;
+	vector<double> err(len);
+
+	std::mt19937 rng(std::random_device{}());
+	std::uniform_int_distribution<> x1_gen(0, len - 1);
+	std::uniform_int_distribution<> x2_gen(0, len - 2);
+	for (int i = 0; i < max_iter; i++)
+	{
+		int x1 = x1_gen(rng);
+		int x2 = x2_gen(rng);
+		x2 = x2 < x1 ? x2 : x2 + 1;
+		double y1 = pts[x1];
+		double y2 = pts[x2];
+		double k = (y2 - y1) / (x2 - x1);
+		double b = y1 - k * x1;
+		for (int j = 0; j < len; j++)
+		{
+			int x = j;
+			double y = pts[x];
+			err[j] = abs(k * x + b - y);
+		}
+		bubbleSort(err, len / 2 + 1);
+		double med_err = err[len / 2];
+		if (med_err < min_med_err)
+		{
+			min_med_err = med_err;
+			best_k = k;
+			best_b = b;
+		}
+	}
+
+	vector<double> pts_in;
+	split(pts, best_k, best_b, min_med_err, inliers, outliers);
+	subset(pts, inliers, pts_in);
+	leastSquare(inliers, pts_in, best_k, best_b);
+	_k = best_k;
+	_b = best_b;
+}
+
+void findOutlierRANSAC(vector<double> pts, vector<int>& inliers, vector<int>& outliers, double& _k, double& _b, int max_iter, double threshold)
+{
+	int len = pts.size();
+	inliers.clear();
+	outliers.clear();
+	double best_k = 0;
+	double best_b = 0;
+	int max_inlier_cnt = 0;
+
+	std::mt19937 rng(std::random_device{}());
+	std::uniform_int_distribution<> x1_gen(0, len - 1);
+	std::uniform_int_distribution<> x2_gen(0, len - 2);
+	for (int i = 0; i < max_iter; i++)
+	{
+		int x1 = x1_gen(rng);
+		int x2 = x2_gen(rng);
+		x2 = x2 < x1 ? x2 : x2 + 1;
+		double y1 = pts[x1];
+		double y2 = pts[x2];
+		double k = (y2 - y1) / (x2 - x1);
+		double b = y1 - k * x1;
+		int inlier_cnt = 0;
+		for (int j = 0; j < len; j++)
+		{
+			int x = j;
+			double y = pts[x];
+			if (abs(k * x + b - y) <= threshold)
+				inlier_cnt++;
+		}
+		if (inlier_cnt > max_inlier_cnt)
+		{
+			max_inlier_cnt = inlier_cnt;
+			best_k = k;
+			best_b = b;
+		}
+	}
+
+	vector<double> pts_in;
+	split(pts, best_k, best_b, threshold, inliers, outliers);
+	subset(pts, inliers, pts_in);
+	leastSquare(inliers, pts_in, best_k, best_b);
 	_k = best_k;
 	_b = best_b;
 }

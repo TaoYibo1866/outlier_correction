@@ -3,6 +3,8 @@
 #include "correct_outlier.h"
 
 using correct_outlier::findOutlier;
+using correct_outlier::findOutlierLMEDS;
+using correct_outlier::findOutlierRANSAC;
 using correct_outlier::correctOutlier;
 using correct_outlier::leastSquare;
 using std::vector;
@@ -15,6 +17,10 @@ int main()
     leastSquare(pts, k, b);
     printf("leastSquare: k=%lf, b=%lf\n", k, b);
     findOutlier(pts, inliers, outliers, k, b, 1, 2);
-    printf("findOutlier: k=%lf, b=%lf\n", k, b);
+    printf("findOutlier: k=%lf, b=%lf, inliers=%ld\n", k, b, inliers.size());
+    findOutlierLMEDS(pts, inliers, outliers, k, b, 10);
+    printf("findOutlierLMEDS: k=%lf, b=%lf, inliers=%ld\n", k, b, inliers.size());
+    findOutlierRANSAC(pts, inliers, outliers, k, b, 10, 1.5);
+    printf("findOutlierRANSAC: k=%lf, b=%lf, inliers=%ld\n", k, b, inliers.size());
     return 0;
 }
